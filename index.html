@@ -562,7 +562,7 @@ function doGet(e) {
 <script>
 // ── Constants ───────────────────────────────────────────────
 // ▼▼▼ ADMIN: Paste your Google Apps Script Web App URL here ▼▼▼
-const TEAM_SHEETS_URL = 'https://script.google.com/macros/library/d/1PZ-3M9rvPrwejYkMfMozKYFeKHmxhbSenxf9vSCKN_sBTn8pJ3S1NBl4/2';   // e.g. 'https://script.google.com/macros/s/ABC.../exec'
+const TEAM_SHEETS_URL = 'https://script.google.com/macros/library/d/1PZ-3M9rvPrwejYkMfMozKYFeKHmxhbSenxf9vSCKN_sBTn8pJ3S1NBl4/3';   // e.g. 'https://script.google.com/macros/s/ABC.../exec'
 // ▲▲▲ After pasting, re-share the HTML file with your team  ▲▲▲
 
 // Returns the Web App URL — prefers hardcoded TEAM_SHEETS_URL over localStorage
@@ -1147,84 +1147,55 @@ async function testConnection(){
 }
 
 // ── PDF Generation ─────────────────────────────────────────────
-// Builds a full self-contained HTML page and sends it to Apps Script
-// Apps Script converts it to PDF server-side using Google's renderer
-// This produces a PDF that matches the screen preview exactly
+// Builds a full self-contained HTML page string
+// This is sent to Apps Script together with the save request (one fetch call)
+// Apps Script converts HTML to PDF server-side — no separate fetch needed
 
 function buildFullHTMLPage(type) {
   const html = buildInvoiceHTML(type);
-  return `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<style>
-  @page { size: A4 portrait; margin: 10mm 12mm; }
-  * { box-sizing: border-box; }
-  body { font-family: Arial, Helvetica, sans-serif; font-size: 9.5pt; color: #000; margin: 0; padding: 0; }
-  .inv-wrap{width:100%;font-size:9.5pt;color:#000;}
-.inv-wrap table{border-collapse:collapse;width:100%;}
-.inv-wrap td,.inv-wrap th{border:0.5pt solid #888;padding:3pt 5pt;vertical-align:top;}
-.inv-header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:6pt;border-bottom:1.5pt solid #333;margin-bottom:5pt;}
-.inv-logo-area{display:flex;align-items:center;gap:10pt;}
-.inv-logo-area img{height:55pt;width:auto;}
-.inv-company-info{font-size:8pt;color:#444;line-height:1.55;}
-.inv-company-info strong{color:#222;}
-.inv-meta-box{min-width:190pt;}
-.inv-meta-box .doc-title{font-size:13pt;font-weight:bold;text-align:center;letter-spacing:2pt;padding:5pt 0;border-bottom:0.5pt solid #ccc;margin-bottom:4pt;}
-.inv-meta-table td{font-size:8.5pt;padding:2.5pt 5pt;}
-.inv-meta-table td:first-child{font-weight:bold;background:#f5f5f5;white-space:nowrap;}
-.buyer-table td{font-size:8.5pt;}
-.buyer-table .buyer-label{font-weight:bold;font-size:9pt;margin-bottom:3pt;}
-.items-th{background:#e8e8e8;font-size:8pt;font-weight:bold;text-align:center;}
-.items-td{font-size:8.5pt;}
-.items-td.right{text-align:right;}
-.items-td.center{text-align:center;}
-.gst-label{text-align:right;font-weight:bold;}
-.total-row td{font-weight:bold;background:#f0f0f0;}
-.words-row{font-size:8pt;font-style:italic;padding:4pt 6pt;border:0.5pt solid #888;border-top:none;}
-.remark-row{font-size:8pt;padding:4pt 6pt;border:0.5pt solid #888;border-top:none;background:#fffbe6;}
-.bottom-table td{font-size:8pt;}
-.tax-inner-table th{background:#e8e8e8;font-size:7.5pt;font-weight:bold;text-align:center;padding:2pt 3pt;}
-.tax-inner-table td{font-size:7.5pt;padding:2pt 3pt;}
-.sign-area{text-align:right;padding-top:24pt;font-size:8.5pt;color:#555;}
-.footer-note{text-align:center;font-size:7.5pt;color:#888;padding:3pt;background:#fafafa;border:0.5pt solid #aaa;border-top:none;margin-top:0;}
-</style>
-</head>
-<body>${html}</body>
-</html>`;
+  // Get invoice CSS from the page
+  const cssRules = `
+    *{box-sizing:border-box;}
+    body{font-family:Arial,Helvetica,sans-serif;font-size:9.5pt;color:#000;margin:0;padding:10mm 12mm;}
+    .inv-wrap{width:100%;font-size:9.5pt;color:#000;}
+    .inv-wrap table{border-collapse:collapse;width:100%;}
+    .inv-wrap td,.inv-wrap th{border:0.5pt solid #888;padding:3pt 5pt;vertical-align:top;}
+    .inv-header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:6pt;border-bottom:1.5pt solid #333;margin-bottom:5pt;}
+    .inv-logo-area{display:flex;align-items:center;gap:10pt;}
+    .inv-logo-area img{height:55pt;width:auto;}
+    .inv-company-info{font-size:8pt;color:#444;line-height:1.55;}
+    .inv-company-info strong{color:#222;}
+    .inv-meta-box{min-width:190pt;}
+    .inv-meta-box .doc-title{font-size:13pt;font-weight:bold;text-align:center;letter-spacing:2pt;padding:5pt 0;border-bottom:0.5pt solid #ccc;margin-bottom:4pt;}
+    .inv-meta-table td{font-size:8.5pt;padding:2.5pt 5pt;}
+    .inv-meta-table td:first-child{font-weight:bold;background:#f5f5f5;white-space:nowrap;}
+    .buyer-table td{font-size:8.5pt;}
+    .buyer-table .buyer-label{font-weight:bold;font-size:9pt;margin-bottom:3pt;}
+    .items-th{background:#e8e8e8;font-size:8pt;font-weight:bold;text-align:center;}
+    .items-td{font-size:8.5pt;}
+    .items-td.right{text-align:right;}
+    .items-td.center{text-align:center;}
+    .gst-label{text-align:right;font-weight:bold;}
+    .total-row td{font-weight:bold;background:#f0f0f0;}
+    .words-row{font-size:8pt;font-style:italic;padding:4pt 6pt;border:0.5pt solid #888;border-top:none;}
+    .remark-row{font-size:8pt;padding:4pt 6pt;border:0.5pt solid #888;border-top:none;background:#fffbe6;}
+    .bottom-table td{font-size:8pt;}
+    .tax-inner-table th{background:#e8e8e8;font-size:7.5pt;font-weight:bold;text-align:center;padding:2pt 3pt;}
+    .tax-inner-table td{font-size:7.5pt;padding:2pt 3pt;}
+    .sign-area{text-align:right;padding-top:24pt;font-size:8.5pt;color:#555;}
+    .footer-note{text-align:center;font-size:7.5pt;color:#888;padding:3pt;background:#fafafa;border:0.5pt solid #aaa;border-top:none;margin-top:0;}
+  `;
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>${cssRules}</style></head><body>${html}</body></html>`;
 }
 
+// generatePDFBlob no longer fetches — it just returns the HTML string
+// The actual PDF conversion happens inside Apps Script when saveAndPDF sends the data
 async function generatePDFBlob(type) {
   const docNo = document.getElementById(type === 'pi' ? 'pi_no' : 'q_no')?.value || 'document';
   const filename = `${docNo}.pdf`;
-  const fullHTML = buildFullHTMLPage(type);
-
-  // Send HTML to Apps Script which converts it to PDF using Google's renderer
-  const url = getURL();
-  if (!url) throw new Error('Web App URL not configured');
-
-  const payload = JSON.stringify({
-    action: 'htmltopdf',
-    html: fullHTML,
-    filename: filename,
-  });
-
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: payload,
-  });
-
-  const result = await res.json();
-  if (!result.success) throw new Error(result.error || 'PDF conversion failed');
-
-  // Decode base64 PDF returned by Apps Script
-  const base64 = result.pdf_base64;
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  const blob = new Blob([bytes], { type: 'application/pdf' });
-  return { blob, filename, pdfLink: result.pdf_link || '' };
+  const htmlPage = buildFullHTMLPage(type);
+  // Return html string instead of blob — Apps Script will convert it
+  return { htmlPage, filename, blob: null };
 }
 
 async function blobToBase64(blob){
@@ -1265,16 +1236,18 @@ async function saveAndPDF(type, fromPreview=false){
   const now=new Date();
   const istTime=new Date(now.getTime()+5.5*60*60000);
   const savedAt=istTime.toISOString().replace('T',' ').substring(0,19)+' IST';
-  show('loading','Generating & uploading PDF...');
-  let pdfLink = '', filename = docNo + '.pdf';
+  show('loading','Building invoice PDF...');
+  let htmlPage = '', filename = docNo + '.pdf';
   try {
-    const { blob, filename: fn, pdfLink: link } = await generatePDFBlob(type);
-    filename = fn;
-    pdfLink = link || '';
-  } catch(err){ show('error','PDF generation failed: '+err.message); return; }
-  show('loading','Saving record to Sheets...');
+    const result = await generatePDFBlob(type);
+    htmlPage = result.htmlPage;
+    filename = result.filename;
+  } catch(err){ show('error','PDF build failed: '+err.message); return; }
+  show('loading','Saving to Sheets and generating PDF on server...');
+  // Send HTML invoice to Apps Script in one request
+  // Apps Script converts HTML→PDF and saves to Drive — no CORS issues
   const payload = JSON.stringify({
-    action:'save',
+    action:'savewithpdf',
     type:type==='pi'?'PI':'QT',
     doc_no:docNo, date:formattedDate, saved_at:savedAt,
     buyer_name:V(type==='pi'?'buyer_name':'q_buyer_name'),
@@ -1286,7 +1259,8 @@ async function saveAndPDF(type, fromPreview=false){
     freight:V(type==='pi'?'freight':'q_freight'),
     remark:V(type==='pi'?'pi_remark':'q_remark'),
     payment_terms:V(type==='pi'?'payment_terms':'q_payment_terms'),
-    pdf_link_override: pdfLink,
+    html_invoice: htmlPage,
+    pdf_filename: filename,
   });
   try{
     const res=await fetch(url,{
@@ -1534,13 +1508,14 @@ async function updateAndPDF(type) {
   const istTime = new Date(now.getTime() + 5.5 * 60 * 60000);
   const savedAt = istTime.toISOString().replace('T', ' ').substring(0, 19) + ' IST';
   const docNo = editMode.docNo || V(type === 'pi' ? 'pi_no' : 'q_no');
-  show('loading', 'Generating updated PDF…');
-  let base64pdf, filename;
+  show('loading', 'Building updated PDF...');
+  let htmlPage = '', filename = docNo + '.pdf';
   try {
-    const { blob, filename: fn } = await generatePDFBlob(type);
-    filename = fn; base64pdf = await blobToBase64(blob);
-  } catch(err) { show('error', 'PDF generation failed: ' + err.message); return; }
-  show('loading', 'Updating record and uploading PDF…');
+    const result = await generatePDFBlob(type);
+    htmlPage = result.htmlPage;
+    filename = result.filename;
+  } catch(err) { show('error', 'PDF build failed: ' + err.message); return; }
+  show('loading', 'Updating record and generating PDF on server...');
   const payload = JSON.stringify({
     action: 'updatewithpdf',
     type: type === 'pi' ? 'PI' : 'QT',
@@ -1554,7 +1529,8 @@ async function updateAndPDF(type) {
     freight: V(type === 'pi' ? 'freight' : 'q_freight'),
     remark: V(type === 'pi' ? 'pi_remark' : 'q_remark'),
     payment_terms: V(type === 'pi' ? 'payment_terms' : 'q_payment_terms'),
-    pdf_filename: filename, pdf_data: base64pdf,
+    html_invoice: htmlPage,
+    pdf_filename: filename,
   });
   try {
     const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: payload });
