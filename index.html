@@ -844,6 +844,9 @@ function buildInvoiceHTML(type){
   const cgst=isIntra?sub*0.09:0, sgst=isIntra?sub*0.09:0, igst=isIntra?0:sub*0.18;
   const tax=sub*0.18, total=sub+tax;
   const totalQty=items.reduce((s,i)=>s+parseFloat(i.qty||0),0);
+  // Determine unit label for total row — use the first item's per, or mixed if different
+  const perUnits=[...new Set(items.filter(i=>i.per).map(i=>i.per))];
+  const totalUnit=perUnits.length===1?perUnits[0]:(perUnits.length>1?'Units':'');
   const remark=V(isPi?'pi_remark':'q_remark');
   const freight=V(isPi?'freight':'q_freight');
   const docLabel=isPi?'Proforma Invoice':'Quotation';
@@ -993,7 +996,7 @@ function buildInvoiceHTML(type){
         <th class="items-th" style="width:62pt">No. &amp; Kind of Pkgs</th>
         <th class="items-th">Description of Goods</th>
         <th class="items-th" style="width:55pt">HSN/SAC</th>
-        <th class="items-th" style="width:55pt" id="inv-qty-header">Quantity</th>
+        <th class="items-th" style="width:55pt">Quantity${totalUnit?' ('+totalUnit+')':''}</th>
         <th class="items-th" style="width:45pt">Rate</th>
         <th class="items-th" style="width:32pt">per</th>
         <th class="items-th" style="width:62pt">Amount</th>
@@ -1004,7 +1007,7 @@ function buildInvoiceHTML(type){
       ${gstRows}
       <tr class="total-row">
         <td colspan="4" style="text-align:right;font-size:9pt;padding:4pt 6pt">Total</td>
-        <td style="text-align:center;font-size:9pt;padding:4pt">${fmtNum(totalQty)} Ltr</td>
+        <td style="text-align:center;font-size:9pt;padding:4pt">${fmtNum(totalQty)}${totalUnit?' '+totalUnit:''}</td>
         <td colspan="2"></td>
         <td style="text-align:right;font-size:9pt;padding:4pt 6pt">₹ ${Math.round(total).toLocaleString('en-IN')}</td>
       </tr>
