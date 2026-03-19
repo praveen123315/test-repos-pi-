@@ -336,31 +336,15 @@ nav{background:var(--text);color:white;padding:0 32px;display:flex;align-items:c
   </div>
 
   <div class="section">
-    <div class="section-header">GST Type</div>
-    <div class="section-body">
-      <div class="gst-selector">
-        <label class="head">GST:</label>
-        <label class="radio-opt"><input type="radio" name="q_gst_type" value="intra" checked onchange="recalcQ()"> SGST 9% + CGST 9% &nbsp;<small>(Within Uttar Pradesh)</small></label>
-        <label class="radio-opt"><input type="radio" name="q_gst_type" value="inter" onchange="recalcQ()"> IGST 18% &nbsp;<small>(Other States)</small></label>
-        <span id="q_gst_badge" class="gst-badge gst-intra">SGST + CGST</span>
-      </div>
-    </div>
-  </div>
-
-  <div class="section">
     <div class="section-header">Items / Products</div>
     <div class="section-body">
       <table class="items-table">
         <thead>
           <tr>
-            <th style="width:28px">SI</th>
-            <th style="width:88px">Pkg</th>
+            <th style="width:32px">SI</th>
+            <th style="width:150px">Packaging</th>
             <th>Description of Goods</th>
-            <th style="width:80px">HSN/SAC</th>
-            <th style="width:75px" id="pi-qty-header">Qty</th>
-            <th style="width:70px">Rate</th>
-            <th style="width:50px">Per</th>
-            <th style="width:80px">Amount</th>
+            <th style="width:80px">Rate (₹)</th>
             <th style="width:28px"></th>
           </tr>
         </thead>
@@ -371,7 +355,6 @@ nav{background:var(--text);color:white;padding:0 32px;display:flex;align-items:c
         <label>Remark / Terms & Conditions</label>
         <textarea id="q_remark" placeholder="Terms, conditions, validity, remarks…" style="min-height:52px"></textarea>
       </div>
-      <div class="totals-area"><div class="totals-box"><div id="q-totals-inner"></div></div></div>
     </div>
   </div>
 
@@ -733,14 +716,18 @@ function goBack(){ switchTab(currentDocType==='pi'?'form':'quotation'); }
 // ── Items ────────────────────────────────────────────────────
 function addItem(type){
   const id=Date.now()+Math.random();
-  (type==='pi'?piItems:qItems).push({id,pkg:'09 x 20 ltr',desc:'',hsn:'32081090',qty:'',rate:'',per:'LTR',amount:0});
+  if(type==='pi'){
+    piItems.push({id,pkg:'09 x 20 ltr',desc:'',hsn:'32081090',qty:'',rate:'',per:'LTR',amount:0});
+  } else {
+    qItems.push({id,pkg:'',desc:'',rate:''});
+  }
   renderItems(type);
 }
 function removeItem(type,id){
   if(type==='pi') piItems=piItems.filter(i=>i.id!==id);
   else qItems=qItems.filter(i=>i.id!==id);
   renderItems(type);
-  type==='pi'?recalcPI():recalcQ();
+  if(type==='pi') recalcPI();
 }
 function renderItems(type){
   const items=type==='pi'?piItems:qItems;
@@ -748,22 +735,32 @@ function renderItems(type){
   tbody.innerHTML='';
   items.forEach((item,idx)=>{
     const tr=document.createElement('tr');
-    tr.innerHTML=`
-      <td style="text-align:center;color:var(--muted);font-size:11px">${idx+1}</td>
-      <td><input value="${item.pkg}" onchange="updateItem('${type}',${item.id},'pkg',this.value)" style="min-width:70px"></td>
-      <td><input value="${item.desc}" onchange="updateItem('${type}',${item.id},'desc',this.value)" placeholder="Product name / description" style="min-width:190px"></td>
-      <td><input value="${item.hsn}" onchange="updateItem('${type}',${item.id},'hsn',this.value)"></td>
-      <td><input type="number" value="${item.qty}" onchange="updateItem('${type}',${item.id},'qty',this.value)" placeholder="0" min="0"></td>
-      <td><input type="number" value="${item.rate}" onchange="updateItem('${type}',${item.id},'rate',this.value)" placeholder="0.00" min="0"></td>
-      <td><select onchange="updateItem('${type}',${item.id},'per',this.value)">
-        <option ${item.per==='LTR'?'selected':''}>LTR</option>
-        <option ${item.per==='KG'?'selected':''}>KG</option>
-        <option ${item.per==='NOS'?'selected':''}>NOS</option>
-        <option ${item.per==='SET'?'selected':''}>SET</option>
-        <option ${item.per==='MTR'?'selected':''}>MTR</option>
-      </select></td>
-      <td class="amount-cell">${fmtNum(item.amount)}</td>
-      <td style="text-align:center"><button class="del-btn" onclick="removeItem('${type}',${item.id})">×</button></td>`;
+    if(type==='pi'){
+      tr.innerHTML=`
+        <td style="text-align:center;color:var(--muted);font-size:11px">${idx+1}</td>
+        <td><input value="${item.pkg}" onchange="updateItem('${type}',${item.id},'pkg',this.value)" style="min-width:70px"></td>
+        <td><input value="${item.desc}" onchange="updateItem('${type}',${item.id},'desc',this.value)" placeholder="Product name / description" style="min-width:190px"></td>
+        <td><input value="${item.hsn}" onchange="updateItem('${type}',${item.id},'hsn',this.value)"></td>
+        <td><input type="number" value="${item.qty}" onchange="updateItem('${type}',${item.id},'qty',this.value)" placeholder="0" min="0"></td>
+        <td><input type="number" value="${item.rate}" onchange="updateItem('${type}',${item.id},'rate',this.value)" placeholder="0.00" min="0"></td>
+        <td><select onchange="updateItem('${type}',${item.id},'per',this.value)">
+          <option ${item.per==='LTR'?'selected':''}>LTR</option>
+          <option ${item.per==='KG'?'selected':''}>KG</option>
+          <option ${item.per==='NOS'?'selected':''}>NOS</option>
+          <option ${item.per==='SET'?'selected':''}>SET</option>
+          <option ${item.per==='MTR'?'selected':''}>MTR</option>
+        </select></td>
+        <td class="amount-cell">${fmtNum(item.amount)}</td>
+        <td style="text-align:center"><button class="del-btn" onclick="removeItem('${type}',${item.id})">×</button></td>`;
+    } else {
+      // Quotation — SI + Packaging (manual text) + Description + Rate only
+      tr.innerHTML=`
+        <td style="text-align:center;color:var(--muted);font-size:11px;width:32px">${idx+1}</td>
+        <td><input value="${item.pkg||''}" onchange="updateItem('${type}',${item.id},'pkg',this.value)" placeholder="e.g. 10 Kg Box, 20 Kg Box" style="min-width:130px"></td>
+        <td><input value="${item.desc||''}" onchange="updateItem('${type}',${item.id},'desc',this.value)" placeholder="Product name / description" style="min-width:220px"></td>
+        <td><input type="number" value="${item.rate||''}" onchange="updateItem('${type}',${item.id},'rate',this.value)" placeholder="0.00" min="0" style="min-width:70px"></td>
+        <td style="text-align:center"><button class="del-btn" onclick="removeItem('${type}',${item.id})">×</button></td>`;
+    }
     tbody.appendChild(tr);
   });
 }
@@ -772,9 +769,9 @@ function updateItem(type,id,field,value){
   const item=items.find(i=>i.id===id);
   if(!item) return;
   item[field]=value;
-  if(field==='qty'||field==='rate') item.amount=parseFloat(item.qty||0)*parseFloat(item.rate||0);
+  if(type==='pi' && (field==='qty'||field==='rate')) item.amount=parseFloat(item.qty||0)*parseFloat(item.rate||0);
   renderItems(type);
-  type==='pi'?recalcPI():recalcQ();
+  if(type==='pi') recalcPI();
 }
 
 // ── GST ──────────────────────────────────────────────────────
@@ -783,17 +780,17 @@ function getGSTType(type){
   return 'intra';
 }
 function recalcPI(){ recalc('pi'); }
-function recalcQ(){  recalc('q');  }
+function recalcQ(){ /* Quotation has no GST or totals */ }
 function recalc(type){
-  const items=type==='pi'?piItems:qItems;
+  if(type!=='pi') return; // only PI has GST badge + totals
+  const items=piItems;
   const sub=items.reduce((s,i)=>s+(i.amount||0),0);
   const isIntra=getGSTType(type)==='intra';
   const cgst=isIntra?sub*0.09:0, sgst=isIntra?sub*0.09:0;
   const igst=isIntra?0:sub*0.18;
   const tax=sub*0.18, total=sub+tax;
-  const badge=document.getElementById(type+'_gst_badge');
-  badge.textContent=isIntra?'SGST + CGST':'IGST';
-  badge.className='gst-badge '+(isIntra?'gst-intra':'gst-inter');
+  const badge=document.getElementById('pi_gst_badge');
+  if(badge){ badge.textContent=isIntra?'SGST + CGST':'IGST'; badge.className='gst-badge '+(isIntra?'gst-intra':'gst-inter'); }
   let html=`<div class="totals-row"><span>Subtotal</span><span>${fmtNum(sub)}</span></div>`;
   if(isIntra){
     html+=`<div class="totals-row"><span>CGST (9%)</span><span>${fmtNum(cgst)}</span></div>`;
@@ -802,14 +799,16 @@ function recalc(type){
     html+=`<div class="totals-row"><span>IGST (18%)</span><span>${fmtNum(igst)}</span></div>`;
   }
   html+=`<div class="totals-row"><span>TOTAL</span><span>₹ ${Math.round(total).toLocaleString('en-IN')}</span></div>`;
-  document.getElementById(type+'-totals-inner').innerHTML=html;
+  const totalsEl=document.getElementById('pi-totals-inner');
+  if(totalsEl) totalsEl.innerHTML=html;
 }
 function autoDetectGST(type){
-  const gstin=document.getElementById(type==='pi'?'buyer_gstin':'q_buyer_gstin').value.trim();
+  if(type!=='pi') return; // Quotation has no GST
+  const gstin=document.getElementById('buyer_gstin').value.trim();
   if(gstin.length>=2){
     const isUP=gstin.substring(0,2)==='09';
-    const radio=document.querySelector(`input[name="${type}_gst_type"][value="${isUP?'intra':'inter'}"]`);
-    if(radio){radio.checked=true; type==='pi'?recalcPI():recalcQ();}
+    const radio=document.querySelector(`input[name="pi_gst_type"][value="${isUP?'intra':'inter'}"]`);
+    if(radio){radio.checked=true; recalcPI();}
   }
 }
 
@@ -862,75 +861,89 @@ function buildInvoiceHTML(type){
   const dest=V(isPi?'destination':'q_contact_info');
   const delDays=V('delivery_days');
 
-  // Items rows — empty filler rows to make table look full
-  let itemRows=items.map((it,idx)=>`
-    <tr>
-      <td class="items-td center">${idx+1}</td>
-      <td class="items-td center">${it.pkg}</td>
-      <td class="items-td">${it.desc}</td>
-      <td class="items-td center">${it.hsn}</td>
-      <td class="items-td center">${fmtNum(it.qty)}</td>
-      <td class="items-td right">${fmtNum(it.rate)}</td>
-      <td class="items-td center">${it.per}</td>
-      <td class="items-td right">${fmtNum(it.amount)}</td>
-    </tr>`).join('');
-  // Add blank filler rows so table has at least 5 rows
-  const minRows=5;
-  for(let i=items.length;i<minRows;i++){
-    itemRows+=`<tr style="height:18pt"><td colspan="8">&nbsp;</td></tr>`;
+  // ── PI: full rows with qty/rate/amount ──
+  // ── Q: simple rows with pkg + desc only ──
+  let itemRows, gstRows='', taxInnerRows='';
+  if(isPi){
+    itemRows=items.map((it,idx)=>`
+      <tr>
+        <td class="items-td center">${idx+1}</td>
+        <td class="items-td center">${it.pkg}</td>
+        <td class="items-td">${it.desc}</td>
+        <td class="items-td center">${it.hsn}</td>
+        <td class="items-td center">${fmtNum(it.qty)}</td>
+        <td class="items-td right">${fmtNum(it.rate)}</td>
+        <td class="items-td center">${it.per}</td>
+        <td class="items-td right">${fmtNum(it.amount)}</td>
+      </tr>`).join('');
+    const minRows=5;
+    for(let i=items.length;i<minRows;i++){
+      itemRows+=`<tr style="height:18pt"><td colspan="8">&nbsp;</td></tr>`;
+    }
+    gstRows=isIntra
+      ?`<tr>
+          <td colspan="5" class="items-td gst-label">Central GST</td>
+          <td class="items-td center">9%</td>
+          <td class="items-td"></td>
+          <td class="items-td right">${fmtNum(cgst)}</td>
+         </tr>
+         <tr>
+          <td colspan="5" class="items-td gst-label">State GST</td>
+          <td class="items-td center">9%</td>
+          <td class="items-td"></td>
+          <td class="items-td right">${fmtNum(sgst)}</td>
+         </tr>`
+      :`<tr>
+          <td colspan="5" class="items-td gst-label">IGST</td>
+          <td class="items-td center">18%</td>
+          <td class="items-td"></td>
+          <td class="items-td right">${fmtNum(igst)}</td>
+         </tr>`;
+    taxInnerRows=isIntra
+      ?`<tr>
+          <td style="text-align:right">0.00</td>
+          <td style="text-align:center">9%</td>
+          <td style="text-align:right">${fmtNum(cgst)}</td>
+          <td style="text-align:center">9%</td>
+          <td style="text-align:right">${fmtNum(sgst)}</td>
+          <td style="text-align:right">${fmtNum(tax)}</td>
+        </tr>
+        <tr style="font-weight:bold;background:#f5f5f5">
+          <td style="text-align:right">Total</td>
+          <td></td>
+          <td style="text-align:right">${fmtNum(cgst)}</td>
+          <td></td>
+          <td style="text-align:right">${fmtNum(sgst)}</td>
+          <td style="text-align:right">${fmtNum(tax)}</td>
+        </tr>`
+      :`<tr>
+          <td style="text-align:right">0.00</td>
+          <td colspan="2" style="text-align:center">—</td>
+          <td style="text-align:center">18%</td>
+          <td style="text-align:right">${fmtNum(igst)}</td>
+          <td style="text-align:right">${fmtNum(igst)}</td>
+        </tr>
+        <tr style="font-weight:bold;background:#f5f5f5">
+          <td style="text-align:right">Total</td>
+          <td colspan="2"></td>
+          <td></td>
+          <td style="text-align:right">${fmtNum(igst)}</td>
+          <td style="text-align:right">${fmtNum(igst)}</td>
+        </tr>`;
+  } else {
+    // Quotation — SI, Packaging, Description, Rate
+    itemRows=items.map((it,idx)=>`
+      <tr>
+        <td class="items-td center">${idx+1}</td>
+        <td class="items-td center">${it.pkg||''}</td>
+        <td class="items-td">${it.desc||''}</td>
+        <td class="items-td right">${it.rate?'₹ '+fmtNum(it.rate):''}</td>
+      </tr>`).join('');
+    const minRows=5;
+    for(let i=items.length;i<minRows;i++){
+      itemRows+=`<tr style="height:18pt"><td colspan="4">&nbsp;</td></tr>`;
+    }
   }
-
-  const gstRows=isIntra
-    ?`<tr>
-        <td colspan="5" class="items-td gst-label">Central GST</td>
-        <td class="items-td center">9%</td>
-        <td class="items-td"></td>
-        <td class="items-td right">${fmtNum(cgst)}</td>
-       </tr>
-       <tr>
-        <td colspan="5" class="items-td gst-label">State GST</td>
-        <td class="items-td center">9%</td>
-        <td class="items-td"></td>
-        <td class="items-td right">${fmtNum(sgst)}</td>
-       </tr>`
-    :`<tr>
-        <td colspan="5" class="items-td gst-label">IGST</td>
-        <td class="items-td center">18%</td>
-        <td class="items-td"></td>
-        <td class="items-td right">${fmtNum(igst)}</td>
-       </tr>`;
-
-  const taxInnerRows=isIntra
-    ?`<tr>
-        <td style="text-align:right">0.00</td>
-        <td style="text-align:center">9%</td>
-        <td style="text-align:right">${fmtNum(cgst)}</td>
-        <td style="text-align:center">9%</td>
-        <td style="text-align:right">${fmtNum(sgst)}</td>
-        <td style="text-align:right">${fmtNum(tax)}</td>
-      </tr>
-      <tr style="font-weight:bold;background:#f5f5f5">
-        <td style="text-align:right">Total</td>
-        <td></td>
-        <td style="text-align:right">${fmtNum(cgst)}</td>
-        <td></td>
-        <td style="text-align:right">${fmtNum(sgst)}</td>
-        <td style="text-align:right">${fmtNum(tax)}</td>
-      </tr>`
-    :`<tr>
-        <td style="text-align:right">0.00</td>
-        <td colspan="2" style="text-align:center">—</td>
-        <td style="text-align:center">18%</td>
-        <td style="text-align:right">${fmtNum(igst)}</td>
-        <td style="text-align:right">${fmtNum(igst)}</td>
-      </tr>
-      <tr style="font-weight:bold;background:#f5f5f5">
-        <td style="text-align:right">Total</td>
-        <td colspan="2"></td>
-        <td></td>
-        <td style="text-align:right">${fmtNum(igst)}</td>
-        <td style="text-align:right">${fmtNum(igst)}</td>
-      </tr>`;
 
   const metaRows=`
     <tr><td class="items-td" style="font-weight:bold;background:#f5f5f5;white-space:nowrap">${isPi?'PI No.':'Quotation No.'}</td><td class="items-td">${docNo}</td></tr>
@@ -989,6 +1002,7 @@ function buildInvoiceHTML(type){
   </table>
 
   <!-- ITEMS TABLE -->
+  ${isPi ? `
   <table style="margin-bottom:0">
     <thead>
       <tr>
@@ -1013,19 +1027,34 @@ function buildInvoiceHTML(type){
       </tr>
     </tbody>
   </table>
-
   <!-- AMOUNT IN WORDS -->
   <div class="words-row">
     Amount Chargeable (in words): <strong>Indian Rupees — ${n2w(Math.round(total))} Only</strong>
     <span style="float:right">E. &amp; O.E</span>
   </div>
+  ` : `
+  <table style="margin-bottom:0">
+    <thead>
+      <tr>
+        <th class="items-th" style="width:28pt">SI No.</th>
+        <th class="items-th" style="width:110pt">Packaging</th>
+        <th class="items-th">Description of Goods</th>
+        <th class="items-th" style="width:65pt;text-align:right">Rate (₹)</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${itemRows}
+    </tbody>
+  </table>
+  `}
 
   <!-- REMARK -->
   ${remark?`<div class="remark-row"><strong>Remark / Terms:</strong> ${remark}</div>`:''}
 
-  <!-- TAX SUMMARY + BANK -->
+  <!-- BOTTOM: TAX SUMMARY + BANK (PI only) | BANK DETAILS BOTH SIDES (Quotation) -->
   <table style="margin-top:5pt">
     <tr>
+      ${isPi ? `
       <td style="width:55%;vertical-align:top;padding:5pt 7pt">
         <div style="font-size:8pt;margin-bottom:3pt"><strong>HSN/SAC:</strong> 32081090</div>
         <table class="tax-inner-table" style="width:100%;border-collapse:collapse">
@@ -1051,6 +1080,13 @@ function buildInvoiceHTML(type){
           <strong>Declaration:</strong> We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.
         </div>
       </td>
+      ` : `
+      <td style="width:50%;vertical-align:top;padding:5pt 7pt;font-size:8.5pt;border:0.5pt solid #888">
+        <div style="font-size:8pt;color:#555;margin-top:4pt">
+          <strong>Declaration:</strong> This quotation is subject to final confirmation. Prices are subject to change without prior notice. Taxes as applicable.
+        </div>
+      </td>
+      `}
       <td style="vertical-align:top;padding:5pt 7pt;font-size:8.5pt">
         <div style="font-weight:bold;margin-bottom:4pt;font-size:9pt">Company's Bank Details</div>
         <div>Bank Name: <strong>${CO.bank}</strong></div>
@@ -1440,15 +1476,14 @@ function loadRecordForEdit(record) {
     set('q_remark', record['Remark']);
     set('q_freight', record['Freight']);
     set('q_payment_terms', record['Payment Terms']);
-    const gstRadio = document.querySelector(`input[name="q_gst_type"][value="${record['GST Type'] || 'intra'}"]`);
-    if(gstRadio) { gstRadio.checked = true; recalcQ(); }
+    // No GST in quotation
   }
 
   // Load items
   try {
     const items = typeof record['Items'] === 'string' ? JSON.parse(record['Items']) : (record['Items'] || []);
     if(type === 'pi') { piItems = items.map(i=>({...i, id: Date.now()+Math.random()})); renderItems('pi'); recalcPI(); }
-    else { qItems = items.map(i=>({...i, id: Date.now()+Math.random()})); renderItems('q'); recalcQ(); }
+    else { qItems = items.map(i=>({id: Date.now()+Math.random(), pkg: i.pkg||'', desc: i.desc||'', rate: i.rate||''})); renderItems('q'); }
   } catch(e) { console.warn('Could not parse items:', e); }
 
   // Show edit mode banner
